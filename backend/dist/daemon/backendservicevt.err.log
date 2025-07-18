@@ -1,0 +1,11 @@
+Error: Cannot find ffmpeg
+    at C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\node_modules\fluent-ffmpeg\lib\processor.js:136:22
+    at C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\node_modules\fluent-ffmpeg\lib\capabilities.js:123:9
+    at wrapper (C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\node_modules\async\dist\async.js:271:20)
+    at next (C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\node_modules\async\dist\async.js:5795:24)
+    at C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\node_modules\async\dist\async.js:327:20
+    at C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\node_modules\fluent-ffmpeg\lib\capabilities.js:116:11
+    at C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\node_modules\fluent-ffmpeg\lib\utils.js:223:16
+    at F (C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\node_modules\which\which.js:68:16)
+    at E (C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\node_modules\which\which.js:80:29)
+    at C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\node_modules\which\which.js:89:16

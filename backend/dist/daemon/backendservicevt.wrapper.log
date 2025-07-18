@@ -1,0 +1,18 @@
+2023-08-18 10:44:34 - Starting C:\Program Files (x86)\nodejs\node.exe  --harmony C:\Users\TECNOLOGIA\AppData\Roaming\npm\node_modules\qckwinsvc\node_modules\node-windows\lib\wrapper.js --file C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\dist\index.js --log "BackendServiceVT wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2023-08-18 10:44:34 - Started 23288
+2023-08-19 18:03:41 - Starting C:\Program Files (x86)\nodejs\node.exe  --harmony C:\Users\TECNOLOGIA\AppData\Roaming\npm\node_modules\qckwinsvc\node_modules\node-windows\lib\wrapper.js --file C:\Users\TECNOLOGIA\Documents\vozatext_proyect\backend\dist\index.js --log "BackendServiceVT wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2023-08-19 18:03:41 - Started 5788
+2023-08-19 18:32:41 - Stopping backendservicevt.exe
+2023-08-19 18:32:41 - ProcessKill 5788
+2023-08-19 18:32:41 - Found child process: 25928 Name: conhost.exe
+2023-08-19 18:32:41 - Found child process: 13648 Name: node.exe
+2023-08-19 18:32:41 - Stopping process 25928
+2023-08-19 18:32:41 - Send SIGINT 25928
+2023-08-19 18:32:41 - SIGINT to 25928 failed - Killing as fallback
+2023-08-19 18:32:41 - Stopping process 13648
+2023-08-19 18:32:41 - Send SIGINT 13648
+2023-08-19 18:32:41 - SIGINT to 13648 failed - Killing as fallback
+2023-08-19 18:32:41 - Stopping process 5788
+2023-08-19 18:32:41 - Send SIGINT 5788
+2023-08-19 18:32:41 - SIGINT to 5788 failed - Killing as fallback
+2023-08-19 18:32:41 - Finished backendservicevt.exe
