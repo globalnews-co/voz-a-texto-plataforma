@@ -1,0 +1,105 @@
+.swal2-cancel {
+  margin-right: 2rem; /* Reduce margin right */
+  }
+  
+  .contenedor {
+  padding: 2rem 6rem; /* Consolidate padding shorthand */
+  }
+  
+  .content::-webkit-scrollbar {
+  width: 8px;
+  }
+  
+  .content::-webkit-scrollbar-thumb {
+  background-color: #ffa600; /* Change scrollbar thumb color */
+  }
+  
+  .col-input {
+  margin-left: 0.5rem; /* Reduce margin left */
+  }
+  
+  .video-stream {
+  background-image: url(https://cdn.pixabay.com/photo/2017/08/10/04/17/microphone-2618102_960_720.jpg);
+  background-repeat: no-repeat;
+  background-size: cover;
+  border-radius: 20px;
+  height: 400px;
+  width: 553px;
+  }
+  
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+  color: #000; 
+  border: none;
+  background-color: rgba(230, 230, 230, 0.1);
+  background: #00abff;
+  border-radius: 50%; 
+  }
+  
+  .noticia {
+  color: #000; /* Change text color */
+  }
+  
+  .wallPaper {
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  position: fixed;
+  top: 0;
+  object-fit: cover; /* Use object-fit to cover entire background */
+  }
+  
+  .form-control {
+  color: #e9f4ff;
+  background-color: #000000c4;
+  border: none; /* Remove border */
+  }
+  
+  .titulo-nota {
+  width: 100%; 
+  max-width: 35rem; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  }
+  .time-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.time-control-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background-color: #2177d2;
+    color: #fff;
+    margin: 0 0.5rem;
+    position: relative;
+}
+
+.time-control-btn i {
+    font-size: 1.5rem;
+}
+
+.seconds-indicator {
+  display: block;
+  position: absolute;
+  top: -6px;
+  left: 83%;
+  transform: translateX(-50%);
+  background-color: #f02b2b;
+  color: #fff;
+  border-radius: 50%;
+  width: 21px;
+  height: 21px;
+  line-height: 20px;
+  text-align: center;
+  font-size: 0.77rem;
+}
+.times:hover {
+  cursor: pointer;
+}

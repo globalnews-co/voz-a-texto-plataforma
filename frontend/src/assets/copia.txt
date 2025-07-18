@@ -1,0 +1,143 @@
+import React, { Component } from 'react'
+
+export class Noticia extends Component {
+    render() {
+        return (
+            <div>
+                <div className='row'>
+                    <div className='col'>
+                        <video tabindex="-1"
+                            class="video-stream html5-main-video"
+                            controls="True"
+                            src="http://storage08.globalnews.com.co/Alertas/2022/10/8743376.mp4" />
+                    </div>
+                    <div className='col'>
+                        <div className='row'>
+
+                            <div class="mb-3 col">
+                                <label for="inputPassword" class="col-sm-2 col-form-label">MEDIO</label>
+                                <div class="col-sm-10">
+                                    <select className="form-control" aria-label="select example"
+                                        name="mencion"
+                                    >
+                                        <option value="1">seleccione una opcion</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+
+                                    </select>
+                                </div>
+
+
+                            </div>
+                            <div class="mb-3 col">
+                                <label for="inputPassword" class="col-sm-2 col-form-label">PROGRAMA</label>
+                                <div class="col-sm-10">
+                                    <select className="form-control" aria-label="select example"
+                                        name="mencion"
+                                    >
+                                        <option value="1">seleccione una opcion</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+
+                                    </select>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div className='row'>
+
+                            <div class="mb-3 col">
+                                <label for="inputPassword" class="col-sm-2 col-form-label">TONO</label>
+                                <div class="col-sm-10">
+                                    <select className="form-control" aria-label="select example"
+                                        name="mencion"
+                                    >
+                                        <option value="1">seleccione una opcion</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+
+                                    </select>
+                                </div>
+
+
+                            </div>
+                            <div class="mb-3 col">
+                                <label for="inputPassword" class="col-form-label">TIPO DE NOTICIA</label>
+                                <div class="col-sm-10">
+                                    <select className="form-control" aria-label="select example"
+                                        name="mencion"
+                                    >
+                                        <option value="1">seleccione una opcion</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+
+                                    </select>
+                                </div>
+                            </div>
+
+
+                            <div class="mb-3 row">
+                                <label for="inputPassword" class="col-form-label">TITULO</label>
+                                <div class="col-sm-10">
+                                    <input type="password" class="form-control" id="inputPassword" />
+                                </div>
+                            </div>
+
+
+                            <div class="mb-3 row">
+                                <label for="inputPassword" class="">ENTREVISTADO</label>
+                                <div class="col-sm-10">
+                                    <input type="password" class="form-control" id="inputPassword" />
+                                </div>
+                            </div>
+
+                            <div className='row'>
+                            <div class="mb-3 col">
+                                <label for="inputPassword" class="col-sm-2 col-form-label">CPE</label>
+                                <div class="col-sm-10">
+                                    <input type="password" class="form-control" id="inputPassword" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3 col">
+                                <label for="inputPassword" class="col-sm-2 col-form-label">AUDIENCIA</label>
+                                <div class="col-sm-10">
+                                    <input type="password" class="form-control" id="inputPassword" />
+                                </div>
+                            </div>
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text">ACLARACION</span>
+                                <textarea class="form-control" aria-label="With textarea" />
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                
+                
+            </div>
+            
+
+
+        )
+    }
+}
+
+export default Noticia
+
+
+
+

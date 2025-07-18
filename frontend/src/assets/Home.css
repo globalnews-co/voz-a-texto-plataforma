@@ -1,0 +1,13 @@
+.title {
+    justify-content: center;
+    display: flex;
+    color: rgb(255, 255, 255);
+    margin-bottom: 20
+  
+}
+
+.iSAVrt {
+  color: #ffffff !important;
+  background-color: black !important;
+  border-bottom-color: rgb(255, 0, 0) !important;
+}
