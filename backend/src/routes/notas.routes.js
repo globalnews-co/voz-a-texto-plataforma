@@ -41,10 +41,10 @@ import {
     uploadCaptureMiddleware,
     editNotes,
     getMynotesdsk,
-    getMediaCutsAll // Nueva función para obtener todos los cortes de un medio (funcionalidad antigua)
+    getMediaCutsAll,
+    getImproveAclaracion
 } from "../controllers/notas.controller.js";
 
-// Import ALL functions from cortador.controller.js
 import {
     InserNoticiaTresCortes,
     getEstadoCortes,
@@ -53,32 +53,20 @@ import {
 
 const router = Router();
 
-// =============================================
-// ROUTES FOR THREE CUTS MANAGEMENT (from cortador.controller.js)
-// =============================================
-
+router.post("/correct-text", getImproveAclaracion)
 router.post("/cortador/tres-cortes", InserNoticiaTresCortes);
 router.get("/cortador/estado-cortes", getEstadoCortes);
 router.get("/cortador/logs-cortes", getLogsCortes);
 router.post('/cortesMedioAll/:id', getMediaCutsAll);
-// =============================================
-// ROUTES FOR ENHANCED CUTS NAVIGATION (from notas.controller.js)
-// =============================================
 
-// *** RUTA CRÍTICA ACTUALIZADA ***
-// Esta ruta ahora maneja el contexto de cortes (anterior, actual, posterior)
 router.post("/cortesMedio/:id", getMediaCuts);
 
-// Nuevas rutas para manejo avanzado de cortes
 router.post("/cortes/rango", obtenerRangoCortes);
 router.get("/corte/buscar/:idMedio/:nombreArchivo", buscarCortePorNombre);
 router.post("/cortes/validar-coherencia", validarCoherenciaCortesHTTP);
 router.get("/cortes/estadisticas/:idMedio/:fecha", getEstadisticasCortes);
 router.get("/corte/contexto/:idMedio/:idRegistro", getContextoNavegacionCorte);
 
-// =============================================
-// GENERAL NOTES ROUTES (from notas.controller.js)
-// =============================================
 
 router.post("/editnotes/:id", editNotes);
 router.post("/transcriptions/:id", getTrancriptions);

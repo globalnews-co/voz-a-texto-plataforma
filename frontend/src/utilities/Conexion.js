@@ -535,24 +535,18 @@ class Conexion {
     }
   }
 
-  // Agregar este método a la clase Conexion en utilities/Conexion.js
 
-  /**
-   * Mejorar texto usando la API de corrección de Python
-   */
   mejorarTexto = async (texto) => {
     try {
       console.log('Enviando texto para mejora:', texto);
 
-      // URL de la API de Python (ajustar según tu configuración)
-
-      const response = await axios.post(`${API_IA}/correct-text`, {
+      const response = await axios.post(`${API_URL}correct-text`, {
         text: texto
       }, {
         headers: {
           'Content-Type': 'application/json'
         },
-        timeout: 30000 // 30 segundos de timeout
+        timeout: 30000
       });
 
       if (response.status !== 200) {
@@ -565,9 +559,8 @@ class Conexion {
     } catch (error) {
       console.error('Error al mejorar texto:', error);
 
-      // Manejar diferentes tipos de errores
       if (error.code === 'ECONNREFUSED') {
-        throw new Error('No se pudo conectar con el servicio de mejora de texto. Verifique que esté ejecutándose.');
+        throw new Error('No se pudo conectar con el servicio de mejora de texto.');
       } else if (error.code === 'ENOTFOUND') {
         throw new Error('Servicio de mejora de texto no encontrado.');
       } else if (error.response) {

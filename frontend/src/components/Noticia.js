@@ -108,12 +108,23 @@ class Noticia extends Component {
         return formattedTime;
     }
 
-    addseconds = (seconds) => {
-        const date = new Date(this.state.fechaCorte);
+    addseconds = (seconds, corteReferencia = null) => {
+        // Usar el corte actual o el de referencia
+        const corteBase = corteReferencia || this.state.corteActual;
+
+        if (!corteBase || !corteBase.FechaCorte) {
+            console.error('No hay corte base para calcular fecha');
+            return new Date().toISOString().slice(0, 19).replace('T', ' ');
+        }
+
+        const date = new Date(corteBase.FechaCorte);
         date.setSeconds(date.getSeconds() + seconds);
-        const fechajs = date.toLocaleString().replace(/\//g, '-');
-        const fecha = moment(fechajs, 'D-M-YYYY, h:mm:ss a');
-        const formattedDate = fecha.format('YYYY-MM-DD HH:mm:ss');
+
+        // Formato: YYYY-MM-DD HH:mm:ss
+        const formattedDate = date.toISOString().slice(0, 19).replace('T', ' ');
+
+        console.log(`[DEBUG] Calculando fecha: Corte base: ${corteBase.FechaCorte}, Segundos: ${seconds}, Resultado: ${formattedDate}`);
+
         return formattedDate;
     }
 
@@ -297,9 +308,17 @@ class Noticia extends Component {
 
         const segundos = Math.ceil(this.videoRef.current.currentTime);
         let segundosfotmat = this.formatTime(segundos);
-        let fechaStart = new Date(this.state.fechaCorte);
+
+        // Usar el corte actual para calcular la fecha
+        const inicio = this.addseconds(segundos, this.state.corteActual);
+        let fechaStart = new Date(this.state.corteActual.FechaCorte);
         fechaStart.setSeconds(fechaStart.getSeconds() + segundos);
-        const inicio = this.addseconds(segundos);
+
+        console.log(`[DEBUG FRONTEND] Marcando inicio:`);
+        console.log(`  - Corte actual: ${this.state.corteActual.NombreMedio}`);
+        console.log(`  - Fecha corte: ${this.state.corteActual.FechaCorte}`);
+        console.log(`  - Segundos en video: ${segundos}`);
+        console.log(`  - Fecha inicio calculada: ${inicio}`);
 
         this.setState({
             start: segundos,
@@ -316,6 +335,7 @@ class Noticia extends Component {
 
         console.log('Inicio marcado en corte:', this.state.corteActual && this.state.corteActual.NombreMedio, 'Tiempo:', segundosfotmat);
     }
+
 
     desmarcarInicio = () => {
         this.setState({
@@ -341,9 +361,17 @@ class Noticia extends Component {
 
         const segundos = Math.ceil(this.videoRef.current.currentTime);
         let segundosfotmat = this.formatTime(segundos);
-        const fin = this.addseconds(segundos);
-        let fechaEnd = new Date(this.state.fechaCorte);
+
+        // Usar el corte actual para calcular la fecha de fin
+        const fin = this.addseconds(segundos, this.state.corteActual);
+        let fechaEnd = new Date(this.state.corteActual.FechaCorte);
         fechaEnd.setSeconds(fechaEnd.getSeconds() + segundos);
+
+        console.log(`[DEBUG FRONTEND] Marcando fin:`);
+        console.log(`  - Corte actual: ${this.state.corteActual.NombreMedio}`);
+        console.log(`  - Fecha corte: ${this.state.corteActual.FechaCorte}`);
+        console.log(`  - Segundos en video: ${segundos}`);
+        console.log(`  - Fecha fin calculada: ${fin}`);
 
         // Validar coherencia de los tiempos
         const validacion = this.validarCoherenciaTiempos(segundos);
@@ -381,6 +409,7 @@ class Noticia extends Component {
         console.log('Fin marcado en corte:', this.state.corteActual && this.state.corteActual.NombreMedio, 'Tiempo:', segundosfotmat);
         console.log('¿Es nota fusionada?', esFusionada);
     }
+
 
     validarCoherenciaTiempos = (tiempoFin) => {
         if (!this.state.inicioMarcado) {
@@ -456,34 +485,45 @@ class Noticia extends Component {
         }
     }
 
-    /**
- * Preparar datos de la noticia para envío
- */
     prepararDatosNoticia = () => {
         const fechaAlta = new Date().toISOString();
+
+        console.log(`[DEBUG FRONTEND] Preparando datos para envío:`);
+        console.log(`  - Inicio: ${this.state.tiempoInicioGlobal && this.state.tiempoInicioGlobal.fecha} (${this.state.tiempoInicioGlobal && this.state.tiempoInicioGlobal.tiempo}s)`);
+        console.log(`  - Fin: ${this.state.tiempoFinGlobal && this.state.tiempoFinGlobal.fecha} (${this.state.tiempoFinGlobal && this.state.tiempoFinGlobal.tiempo}s)`);
+        console.log(`  - Es fusionado: ${this.state.esCorteFucionado}`);
 
         const datos = {
             // Datos básicos de la noticia
             aclaracion: this.state.aclaracion,
             entrevistado: this.state.entrevistado,
-            fechaInicio: this.state.fechaInicial,
-            fechaFin: this.state.fechaFinal,
-            duracion: this.state.end - this.state.start,
+            titulo: this.state.titulo,
             medioid: this.state.idmedio,
             programaid: this.state.programaid,
-            fechaTransmitido: this.state.fechaCorte,
             conductores: this.state.conductores,
             tiponoticiaid: this.state.tiponoticiaid,
             tipotonoid: this.state.tipotonoid,
-            titulo: this.state.titulo,
             userid: this.state.userid,
-            mediaUrl: this.state.transcripcion.LinkStreamming,
-            startTime: this.state.start,
-            endTime: this.state.end,
+            fechaAlta: fechaAlta,
 
-            // Datos de tiempo y cortes
-            tiempoInicio: this.state.tiempoInicioGlobal,
-            tiempoFin: this.state.tiempoFinGlobal,
+            // Datos corregidos de tiempo
+            fechaInicio: this.state.tiempoInicioGlobal && this.state.tiempoInicioGlobal.fecha,
+            fechaFin: this.state.tiempoFinGlobal && this.state.tiempoFinGlobal.fecha,
+            fechaTransmitido: this.state.corteInicio && this.state.corteInicio.FechaCorte,
+
+            // Objetos de tiempo con estructura correcta
+            tiempoInicio: {
+                tiempo: this.state.tiempoInicioGlobal && this.state.tiempoInicioGlobal.tiempo,
+                fecha: this.state.tiempoInicioGlobal && this.state.tiempoInicioGlobal.fecha,
+                corte: this.state.tiempoInicioGlobal && this.state.tiempoInicioGlobal.corte
+            },
+            tiempoFin: {
+                tiempo: this.state.tiempoFinGlobal && this.state.tiempoFinGlobal.tiempo,
+                fecha: this.state.tiempoFinGlobal && this.state.tiempoFinGlobal.fecha,
+                corte: this.state.tiempoFinGlobal && this.state.tiempoFinGlobal.corte
+            },
+
+            // Configuración de cortes
             esCorteFusionado: this.state.esCorteFucionado,
 
             // Temas y coberturas
@@ -496,13 +536,22 @@ class Noticia extends Component {
             datos.cortesInvolucrados = this.obtenerCortesInvolucrados();
         }
 
+        console.log(`[DEBUG FRONTEND] Datos preparados:`, datos);
+
         return datos;
     }
+
+
 
     obtenerCortesInvolucrados = () => {
         const cortesInvolucrados = [];
 
+        console.log(`[DEBUG FRONTEND] Obteniendo cortes involucrados:`);
+        console.log(`  - Corte inicio: ${this.state.corteInicio && this.state.corteInicio.NombreMedio} (ID: ${this.state.corteInicio && this.state.corteInicio.IdRegistro})`);
+        console.log(`  - Corte fin: ${this.state.corteFin && this.state.corteFin.NombreMedio} (ID: ${this.state.corteFin && this.state.corteFin.IdRegistro})`);
+
         if (this.state.corteInicio && this.state.corteFin) {
+            // Primer corte (donde inicia)
             cortesInvolucrados.push({
                 corteNumero: 1,
                 idRegistro: this.state.corteInicio.IdRegistro,
@@ -512,7 +561,7 @@ class Noticia extends Component {
                 tiempoInicio: this.state.tiempoInicioGlobal.tiempo,
                 tiempoFin: this.state.corteInicio.IdRegistro === this.state.corteFin.IdRegistro
                     ? this.state.tiempoFinGlobal.tiempo
-                    : null,
+                    : null, // Si termina en otro corte, este va hasta el final
                 esCorteCompleto: false
             });
 
@@ -524,15 +573,18 @@ class Noticia extends Component {
                     nombreCorte: this.state.corteFin.NombreMedio,
                     linkStreaming: this.state.corteFin.LinkStreamming,
                     fechaCorte: this.state.corteFin.FechaCorte,
-                    tiempoInicio: 0,
+                    tiempoInicio: 0, // Empieza desde el principio
                     tiempoFin: this.state.tiempoFinGlobal.tiempo,
                     esCorteCompleto: false
                 });
             }
         }
 
+        console.log(`[DEBUG FRONTEND] Cortes involucrados generados:`, cortesInvolucrados);
+
         return cortesInvolucrados;
     }
+
 
     /**
      * Manejar respuesta exitosa del guardado
@@ -557,16 +609,31 @@ class Noticia extends Component {
         });
     }
 
-    handleModificacionFechaStart() {
+    handleModificacionFechaStart = () => {
         if (this.state.inicioMarcado) {
             const regex = /^([0-5][0-9]):([0-5][0-9])$/;
             const inputValue = this.state.secondsfoStart;
             if (regex.test(inputValue)) {
                 let [minutes, seconds] = this.state.secondsfoStart.split(':');
                 let segundos = (parseInt(minutes) * 60) + parseInt(seconds);
-                const inicio = this.addseconds(segundos);
+
+                // Recalcular fecha con el corte correcto
+                const inicio = this.addseconds(segundos, this.state.corteInicio);
+
                 this.videoRef.current.currentTime = segundos;
-                this.setState({ fechaInicial: inicio, start: segundos });
+
+                // Actualizar el objeto tiempoInicioGlobal también
+                this.setState({
+                    fechaInicial: inicio,
+                    start: segundos,
+                    tiempoInicioGlobal: {
+                        corte: this.state.tiempoInicioGlobal && this.state.tiempoInicioGlobal.corte,
+                        tiempo: segundos,
+                        fecha: inicio
+                    }
+                });
+
+                console.log(`[DEBUG FRONTEND] Fecha inicio modificada: ${inicio} (${segundos}s)`);
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -583,16 +650,31 @@ class Noticia extends Component {
         }
     }
 
-    handleModificacionFechaEnd() {
+    handleModificacionFechaEnd = () => {
         if (this.state.finMarcado) {
             const regex = /^([0-5][0-9]):([0-5][0-9])$/;
             const inputValue = this.state.secondsfoEnd;
             if (regex.test(inputValue)) {
                 let [minutes, seconds] = this.state.secondsfoEnd.split(':');
                 let segundos = (parseInt(minutes) * 60) + parseInt(seconds);
-                const fin = this.addseconds(segundos);
+
+                // Recalcular fecha con el corte correcto
+                const fin = this.addseconds(segundos, this.state.corteFin);
+
                 this.videoRef.current.currentTime = segundos;
-                this.setState({ fechaFinal: fin, end: segundos });
+
+                // Actualizar el objeto tiempoFinGlobal también
+                this.setState({
+                    fechaFinal: fin,
+                    end: segundos,
+                    tiempoFinGlobal: {
+                        corte: this.state.tiempoFinGlobal && this.state.tiempoFinGlobal.corte,
+                        tiempo: segundos,
+                        fecha: fin
+                    }
+                });
+
+                console.log(`[DEBUG FRONTEND] Fecha fin modificada: ${fin} (${segundos}s)`);
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -608,6 +690,8 @@ class Noticia extends Component {
             });
         }
     }
+
+
 
     handleTimeRangeClick = (e) => {
         const i = parseInt(e.target.getAttribute("data-index"));
@@ -720,18 +804,61 @@ class Noticia extends Component {
             // Llamar a la API de mejora de texto
             const resultado = await Conexion.mejorarTexto(this.state.aclaracion);
 
-            // Actualizar el estado automáticamente con el texto mejorado
-            this.setState({
-                aclaracion: resultado.corrected_text
-            });
+            console.log('Respuesta completa de la API:', resultado);
+
+            // ✅ USAR LA ESTRUCTURA CORRECTA SEGÚN TUS LOGS
+            let textoMejorado;
+            let tituloMejorado;
+
+            if (resultado.success && resultado.data) {
+                textoMejorado = resultado.data.aclaracion;
+                tituloMejorado = resultado.data.titulo;
+            } else {
+                // Fallback si la estructura es diferente
+                textoMejorado = resultado.aclaracion || resultado.corrected_text;
+                tituloMejorado = resultado.titulo;
+            }
+
+            if (!textoMejorado) {
+                throw new Error('No se recibió texto mejorado de la API');
+            }
+
+            // Actualizar el estado con el texto mejorado
+            const nuevosEstados = {
+                aclaracion: textoMejorado
+            };
+
+            // Si hay título y el campo está vacío o tiene poco contenido, actualizarlo
+            if (tituloMejorado && (!this.state.titulo || this.state.titulo.trim().length < 3)) {
+                nuevosEstados.titulo = tituloMejorado;
+            }
+
+            this.setState(nuevosEstados);
 
             // Cerrar el loading y mostrar confirmación
             Swal.fire({
                 icon: 'success',
-                title: 'Texto mejorado',
-                timer: 4000,
+                title: 'Texto mejorado exitosamente',
+                html: `
+                <div style="text-align: left; max-height: 300px; overflow-y: auto;">
+                    ${tituloMejorado ? `
+                        <div style="margin-bottom: 15px; padding: 10px; background: #e8f5e8; border-radius: 5px;">
+                            <strong>📝 Título generado:</strong><br>
+                            <em>"${tituloMejorado}"</em>
+                        </div>
+                    ` : ''}
+                    <div style="padding: 10px; background: #d1ecf1; border-radius: 5px;">
+                        <strong>✨ Texto mejorado:</strong><br>
+                        <em>"${textoMejorado.length > 200 ? textoMejorado.substring(0, 200) + '...' : textoMejorado}"</em>
+                    </div>
+                </div>
+            `,
+                timer: 6000,
                 showConfirmButton: true,
-                confirmButtonText: 'Entendido'
+                confirmButtonText: 'Perfecto',
+                customClass: {
+                    popup: 'swal-wide'
+                }
             });
 
         } catch (error) {
@@ -744,6 +871,37 @@ class Noticia extends Component {
                 confirmButtonText: 'Entendido'
             });
         }
+    }
+
+    // Método adicional para mostrar comparación (opcional)
+    mostrarComparacion = (textoOriginal, textoMejorado, tituloMejorado) => {
+        Swal.fire({
+            title: 'Comparación de textos',
+            html: `
+            <div style="text-align: left; max-height: 400px; overflow-y: auto;">
+                ${tituloMejorado ? `
+                    <div style="margin-bottom: 15px; padding: 10px; background: #e8f5e8; border-radius: 5px;">
+                        <strong>📝 Título generado:</strong><br>
+                        <em>${tituloMejorado}</em>
+                    </div>
+                ` : ''}
+                
+                <div style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border-radius: 5px;">
+                    <strong>📄 Texto original:</strong><br>
+                    <em>${textoOriginal}</em>
+                </div>
+                
+                <div style="padding: 10px; background: #d1ecf1; border-radius: 5px;">
+                    <strong>✨ Texto mejorado:</strong><br>
+                    <em>${textoMejorado}</em>
+                </div>
+            </div>
+        `,
+            confirmButtonText: 'Cerrar',
+            customClass: {
+                popup: 'swal-wide'
+            }
+        });
     }
 
     async componentDidMount() {
@@ -1277,7 +1435,7 @@ class Noticia extends Component {
                                                 </button>
                                             </label>
                                             <textarea
-                                                className="form-control"
+                                                className="form-control mt-2"
                                                 id="aclaracion"
                                                 name="aclaracion"
                                                 rows="5"

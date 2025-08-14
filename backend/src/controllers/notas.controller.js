@@ -9,6 +9,9 @@ import moment from 'moment';
 
 config();
 
+const API_OPENAI = process.env.API_OPENAI;
+const URL_OPENAI = process.env.URL_OPENAI;
+
 const ffmpegPath = process.env.FFMPEG_PATH
 if (ffmpegPath !== '' || ffmpegPath !== null) {
   ffmpeg.setFfmpegPath(ffmpegPath);
@@ -79,6 +82,200 @@ const safeString = (value) => {
   }
   return String(value);
 };
+
+export const getImproveAclaracion = async (req, res) => {
+  try {
+    console.log('getImproveAclaracion - Datos recibidos:', req.body);
+    
+    const { text } = req.body;
+    
+    // Validar que se reciba el texto
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'El campo "text" es requerido y debe ser una cadena de texto'
+      });
+    }
+    
+    // Función para limpiar las marcas de tiempo
+    const cleanTimestamps = (inputText) => {
+      // Patrón para detectar marcas de tiempo HH:MM:SS a HH:MM:SS
+      const timestampPattern = /\d{2}:\d{2}:\d{2}\s+a\s+\d{2}:\d{2}:\d{2}\s+/g;
+      
+      // Quitar las marcas de tiempo y limpiar texto
+      return inputText
+        .replace(timestampPattern, '')
+        .replace(/\n+/g, ' ')      // Saltos de línea por espacios
+        .replace(/\s+/g, ' ')      // Múltiples espacios a uno
+        .trim();
+    };
+    
+    // Limpiar el texto antes de enviarlo a OpenAI
+    const cleanedText = cleanTimestamps(text);
+    console.log('Texto limpio enviado a OpenAI:', cleanedText);
+    
+    // Prompt optimizado para menor consumo de tokens
+    const prompt = `Corrige y mejora este texto, luego genera título y resumen. Responde solo JSON:
+    
+Texto: "${cleanedText}"
+
+Formato respuesta:
+{
+  "titulo": "título conciso aquí",
+  "aclaracion": "resumen máximo 400 caracteres aquí"
+}`;
+
+    console.log('Prompt enviado:', prompt);
+
+    // Verificar que las variables de entorno estén configuradas
+    if (!API_OPENAI || !URL_OPENAI) {
+      throw new Error('Variables de entorno API_OPENAI y URL_OPENAI son requeridas');
+    }
+
+    // Construir URL correcta para OpenAI
+    const openaiUrl = `${URL_OPENAI}/chat/completions`;
+    console.log('URL OpenAI:', openaiUrl);
+
+    // Llamada a OpenAI
+    const openaiResponse = await fetch(openaiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_OPENAI}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un editor experto. Corriges textos y generas títulos concisos con resúmenes de máximo 400 caracteres. Responde solo en JSON válido.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 300,
+        temperature: 0.3,
+        top_p: 0.9
+      })
+    });
+
+    console.log('Status de respuesta OpenAI:', openaiResponse.status);
+    console.log('Headers de respuesta:', openaiResponse.headers);
+
+    if (!openaiResponse.ok) {
+      const errorData = await openaiResponse.json();
+      console.error('Error de OpenAI:', errorData);
+      throw new Error(`Error de OpenAI: ${errorData.error?.message || 'Error desconocido'}`);
+    }
+
+    const openaiData = await openaiResponse.json();
+    console.log('Respuesta completa de OpenAI:', JSON.stringify(openaiData, null, 2));
+    
+    // Extraer y parsear la respuesta
+    const aiResponse = openaiData.choices[0].message.content.trim();
+    console.log('Contenido de respuesta IA:', aiResponse);
+    
+    let parsedResponse;
+    try {
+      // Intentar parsear como JSON
+      parsedResponse = JSON.parse(aiResponse);
+      console.log('Respuesta parseada:', parsedResponse);
+    } catch (parseError) {
+      console.error('Error parseando respuesta de IA:', parseError);
+      console.log('Respuesta raw que falló:', aiResponse);
+      
+      // Fallback: extraer título y aclaración manualmente
+      parsedResponse = {
+        titulo: 'Texto procesado',
+        aclaracion: aiResponse.length > 400 ? aiResponse.substring(0, 397) + '...' : aiResponse
+      };
+    }
+
+    // Validar que la respuesta tenga la estructura esperada
+    if (!parsedResponse || typeof parsedResponse !== 'object') {
+      throw new Error('La respuesta de IA no es un objeto válido');
+    }
+
+    if (!parsedResponse.titulo || !parsedResponse.aclaracion) {
+      console.log('Respuesta incompleta, usando valores por defecto');
+      parsedResponse = {
+        titulo: parsedResponse.titulo || 'Análisis de conversación deportiva',
+        aclaracion: parsedResponse.aclaracion || cleanedText.length > 400 ? cleanedText.substring(0, 397) + '...' : cleanedText
+      };
+    }
+
+    // Validar y truncar aclaración si excede 400 caracteres
+    if (parsedResponse.aclaracion.length > 400) {
+      console.log(`Aclaración truncada de ${parsedResponse.aclaracion.length} a 400 caracteres`);
+      parsedResponse.aclaracion = parsedResponse.aclaracion.substring(0, 397) + '...';
+    }
+
+    console.log('Resultado final:', parsedResponse);
+
+    // Respuesta exitosa
+    res.status(200).json({
+      success: true,
+      message: 'Texto procesado exitosamente con IA',
+      data: {
+        originalLength: text.length,
+        cleanedLength: cleanedText.length,
+        timestampsRemoved: (text.match(/\d{2}:\d{2}:\d{2}\s+a\s+\d{2}:\d{2}:\d{2}\s+/g) || []).length,
+        titulo: parsedResponse.titulo,
+        aclaracion: parsedResponse.aclaracion,
+        aclaracionLength: parsedResponse.aclaracion.length,
+        tokensUsed: openaiData.usage?.total_tokens || 'No disponible'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error en getImproveAclaracion:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};
+
+// Función auxiliar para limpiar timestamps
+export const cleanTextTimestamps = (text) => {
+  if (!text || typeof text !== 'string') {
+    return '';
+  }
+  
+  const timestampPattern = /\d{2}:\d{2}:\d{2}\s+a\s+\d{2}:\d{2}:\d{2}\s+/g;
+  
+  return text
+    .replace(timestampPattern, '')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// Función auxiliar para testing del prompt (opcional)
+export const testPromptOptimization = async (text) => {
+  const cleanedText = cleanTextTimestamps(text);
+  
+  // Versión corta del prompt para testing
+  const shortPrompt = `Corrige y mejora: "${cleanedText}"
+  
+JSON: {"titulo":"...","aclaracion":"..."}`;
+
+  console.log('Texto original:', text.length, 'caracteres');
+  console.log('Texto limpio:', cleanedText.length, 'caracteres');
+  console.log('Prompt final:', shortPrompt.length, 'caracteres');
+  
+  return {
+    originalLength: text.length,
+    cleanedLength: cleanedText.length,
+    promptLength: shortPrompt.length,
+    estimatedTokens: Math.ceil(shortPrompt.length / 4) // Aproximación: 1 token ≈ 4 caracteres
+  };
+};
+
 
 export const takeCapture = async (req, res) => {
   try {
@@ -205,6 +402,68 @@ export const InserNoticia = async (req, res) => {
       });
     }
 
+    // **CÁLCULO CORRECTO DE DURACIÓN Y TIEMPOS**
+    let finalStartTime = 0;
+    let finalEndTime = 0;
+    let calculatedDuration = 0;
+
+    if (safeData.fechaTransmitido && safeData.fechaInicio && safeData.fechaFin) {
+      // Convertir fechas a objetos Date
+      const fechaTransmitidoDate = new Date(safeData.fechaTransmitido);
+      const fechaInicioDate = new Date(safeData.fechaInicio);
+      const fechaFinDate = new Date(safeData.fechaFin);
+
+      // Calcular diferencias en segundos desde fechaTransmitido
+      finalStartTime = Math.floor((fechaInicioDate.getTime() - fechaTransmitidoDate.getTime()) / 1000);
+      finalEndTime = Math.floor((fechaFinDate.getTime() - fechaTransmitidoDate.getTime()) / 1000);
+
+      // Asegurar que los tiempos sean positivos
+      if (finalStartTime < 0) finalStartTime = 0;
+      if (finalEndTime <= finalStartTime) {
+        // Si hay problema con las fechas, usar duración original o 60 segundos por defecto
+        finalEndTime = finalStartTime + (safeData.duracion || 60);
+      }
+
+      // CALCULAR LA DURACIÓN REAL basada en las fechas
+      calculatedDuration = Math.floor((fechaFinDate.getTime() - fechaInicioDate.getTime()) / 1000);
+
+      // Asegurar que la duración sea positiva
+      if (calculatedDuration <= 0) {
+        calculatedDuration = safeData.duracion || 60;
+      }
+
+      console.log('Cálculo de tiempos y duración:');
+      console.log('fechaTransmitido:', safeData.fechaTransmitido);
+      console.log('fechaInicio:', safeData.fechaInicio);
+      console.log('fechaFin:', safeData.fechaFin);
+      console.log('finalStartTime calculado:', finalStartTime);
+      console.log('finalEndTime calculado:', finalEndTime);
+      console.log('Duración calculada desde fechas:', calculatedDuration, 'segundos');
+      console.log('Duración original recibida:', safeData.duracion, 'segundos');
+    } else {
+      // Fallback a los valores originales si no hay fechaTransmitido
+      finalStartTime = safeData.startTime || 0;
+      finalEndTime = safeData.endTime || 0;
+
+      // Si tenemos fechaInicio y fechaFin, calcular duración real
+      if (safeData.fechaInicio && safeData.fechaFin) {
+        const fechaInicioDate = new Date(safeData.fechaInicio);
+        const fechaFinDate = new Date(safeData.fechaFin);
+        calculatedDuration = Math.floor((fechaFinDate.getTime() - fechaInicioDate.getTime()) / 1000);
+
+        if (calculatedDuration <= 0) {
+          calculatedDuration = safeData.duracion || 60;
+        }
+      } else {
+        calculatedDuration = safeData.duracion || 60;
+      }
+
+      console.log('Usando tiempos originales como fallback:', { finalStartTime, finalEndTime, calculatedDuration });
+    }
+
+    // Usar la duración calculada en lugar de la recibida
+    const finalDuration = calculatedDuration;
+
     // Validar todos los campos de texto contra las restricciones de la DB
     const validations = [
       validateFieldLength('Titulo', safeData.titulo, 2000),
@@ -227,7 +486,7 @@ export const InserNoticia = async (req, res) => {
       .request()
       .input("aclaracion", sql.VarChar, safeData.aclaracion)
       .input("conductores", sql.VarChar, safeData.conductores)
-      .input("duracion", sql.Int, safeData.duracion)
+      .input("duracion", sql.Int, finalDuration) // Usar duración calculada
       .input("entrevistado", sql.VarChar, safeData.entrevistado)
       .input("fechaInicio", insertNoticia.fechaInicio)
       .input("fechaTransmitido", sql.DateTime, safeData.fechaTransmitido)
@@ -243,37 +502,7 @@ export const InserNoticia = async (req, res) => {
     const mediaUrl = insertNoticia.mediaUrl;
     const mediaName = result.recordset[0].id;
     console.log('MediaName generado:', mediaName, 'tipo:', typeof mediaName);
-
-    // **CÁLCULO DE TIEMPOS BASADO EN fechaTransmitido**
-    let finalStartTime = 0;
-    let finalEndTime = 0;
-
-    if (safeData.fechaTransmitido && safeData.fechaInicio && safeData.fechaFin) {
-      // Convertir fechas a objetos Date
-      const fechaTransmitidoDate = new Date(safeData.fechaTransmitido);
-      const fechaInicioDate = new Date(safeData.fechaInicio);
-      const fechaFinDate = new Date(safeData.fechaFin);
-
-      // Calcular diferencias en segundos desde fechaTransmitido
-      finalStartTime = Math.floor((fechaInicioDate.getTime() - fechaTransmitidoDate.getTime()) / 1000);
-      finalEndTime = Math.floor((fechaFinDate.getTime() - fechaTransmitidoDate.getTime()) / 1000);
-
-      // Asegurar que los tiempos sean positivos
-      if (finalStartTime < 0) finalStartTime = 0;
-      if (finalEndTime <= finalStartTime) finalEndTime = finalStartTime + safeData.duracion || 60;
-
-      console.log('Cálculo de tiempos basado en fechaTransmitido:');
-      console.log('fechaTransmitido:', safeData.fechaTransmitido);
-      console.log('fechaInicio:', safeData.fechaInicio);
-      console.log('fechaFin:', safeData.fechaFin);
-      console.log('finalStartTime calculado:', finalStartTime);
-      console.log('finalEndTime calculado:', finalEndTime);
-    } else {
-      // Fallback a los valores originales si no hay fechaTransmitido
-      finalStartTime = safeData.startTime || 0;
-      finalEndTime = safeData.endTime || 0;
-      console.log('Usando tiempos originales como fallback:', { finalStartTime, finalEndTime });
-    }
+    console.log('Duración final guardada en BD:', finalDuration, 'segundos');
 
     const fecha = new Date(safeData.fechaInicio);
     const mes = fecha.getMonth() + 1;
@@ -286,11 +515,11 @@ export const InserNoticia = async (req, res) => {
       throw new Error(linkValidation.message);
     }
 
-    // Log #1 con los tiempos calculados - SIMPLIFICADO PARA UN SOLO CORTE
+    // Log #1 con los tiempos y duración calculados correctamente
     await pool.request()
       .input("idNoticia", sql.VarChar, mediaName.toString())
       .input("tipoAccion", sql.VarChar, 'Noticia Insertada y Corte Solicitado')
-      .input("detallesAccion", sql.VarChar, `Noticia ID ${mediaName} insertada por usuario ${safeData.userid}. Título: ${safeData.titulo}. Corte solicitado: ${finalStartTime}-${finalEndTime} segundos (calculado desde fechaTransmitido).`)
+      .input("detallesAccion", sql.VarChar, `Noticia ID ${mediaName} insertada por usuario ${safeData.userid}. Título: ${safeData.titulo}. Corte solicitado: ${finalStartTime}-${finalEndTime} segundos (duración: ${finalDuration}s). Duración calculada desde fechas.`)
       .input("tiempoInicioSolicitado", sql.Int, finalStartTime)
       .input("tiempoFinSolicitado", sql.Int, finalEndTime)
       .input("tiempoInicioFinal", sql.Int, null)
@@ -308,7 +537,7 @@ export const InserNoticia = async (req, res) => {
 
       ffmpeg(mediaUrl)
         .setStartTime(finalStartTime)
-        .setDuration(finalEndTime - finalStartTime)
+        .setDuration(finalEndTime - finalStartTime) // Usar la diferencia real de tiempos
         .output(`\\\\192.168.1.88\\web\\Alertas\\${year}\\${mes2}\\${mediaName}.mp4`)
         .on('end', async () => {
           try {
@@ -326,11 +555,11 @@ export const InserNoticia = async (req, res) => {
               .input('noticiaID', sql.Int, mediaName)
               .query('UPDATE [AuditoriaRadioTelevision].[dbo].[Noticias] SET [LinkStreaming] = @linkCorte, [FlagCortado] = \'S\' WHERE [NoticiaID] = @noticiaID');
 
-            // Log #2 con los tiempos finales - SIMPLIFICADO
+            // Log #2 con los tiempos finales y duración real
             await pool.request()
               .input("idNoticia", sql.VarChar, mediaName.toString())
               .input("tipoAccion", sql.VarChar, 'Video Cortado y Enlace Actualizado (Éxito)')
-              .input("detallesAccion", sql.VarChar, `Video cortado para la noticia ID ${mediaName} exitosamente. Tiempos finales: ${finalStartTime}-${finalEndTime} segundos.`)
+              .input("detallesAccion", sql.VarChar, `Video cortado para la noticia ID ${mediaName} exitosamente. Tiempos finales: ${finalStartTime}-${finalEndTime} segundos (duración real del corte: ${finalEndTime - finalStartTime}s, duración almacenada: ${finalDuration}s).`)
               .input("tiempoInicioSolicitado", sql.Int, finalStartTime)
               .input("tiempoFinSolicitado", sql.Int, finalEndTime)
               .input("tiempoInicioFinal", sql.Int, finalStartTime)
@@ -342,7 +571,7 @@ export const InserNoticia = async (req, res) => {
                 VALUES (@idNoticia, @tipoAccion, @detallesAccion, GETDATE(), @tiempoInicioSolicitado, @tiempoFinSolicitado, @tiempoInicioFinal, @tiempoFinFinal, @urlMediaOriginal)
               `);
 
-            console.log('Video cortado exitosamente con tiempos calculados');
+            console.log('Video cortado exitosamente con duración correcta:', finalEndTime - finalStartTime, 'segundos');
 
           } catch (dbError) {
             console.error('Error al actualizar la base de datos después del corte:', dbError);
@@ -350,11 +579,11 @@ export const InserNoticia = async (req, res) => {
         })
         .on('error', async (error) => {
           console.error('Error durante el procesamiento del video:', error);
-          // Log de error - SIMPLIFICADO
+          // Log de error
           await pool.request()
             .input("idNoticia", sql.VarChar, mediaName.toString())
             .input("tipoAccion", sql.VarChar, 'Error Procesamiento Video (FFmpeg)')
-            .input("detallesAccion", sql.VarChar, `Fallo en FFmpeg para noticia ID ${mediaName}: ${error.message}. Tiempos solicitados: ${finalStartTime}-${finalEndTime}`)
+            .input("detallesAccion", sql.VarChar, `Fallo en FFmpeg para noticia ID ${mediaName}: ${error.message}. Tiempos solicitados: ${finalStartTime}-${finalEndTime} (duración: ${finalDuration}s)`)
             .input("tiempoInicioSolicitado", sql.Int, finalStartTime)
             .input("tiempoFinSolicitado", sql.Int, finalEndTime)
             .input("tiempoInicioFinal", sql.Int, null)
@@ -372,11 +601,16 @@ export const InserNoticia = async (req, res) => {
         mediaUrl: !!mediaUrl,
         finalStartTime,
         finalEndTime,
-        isValidRange: finalEndTime > finalStartTime
+        isValidRange: finalEndTime > finalStartTime,
+        calculatedDuration: finalDuration
       });
     }
 
-    res.json({ id: mediaName });
+    res.json({
+      id: mediaName,
+      duracionCalculada: finalDuration,
+      duracionOriginal: safeData.duracion
+    });
 
   } catch (error) {
     console.error('Error en InserNoticia:', error);
@@ -394,6 +628,56 @@ export const InserNoticia = async (req, res) => {
     }
   }
 }
+
+// Función mejorada para actualizar fecha y duración
+export const updateFechaNoticia = async (req, res) => {
+  const tiempoNoticia = req.body;
+  console.log("updateFechaNoticia - datos recibidos:", tiempoNoticia);
+  req.header("Access-Control-Allow-Origin", "*");
+
+  try {
+    // Calcular duración real basada en las fechas recibidas
+    let calculatedDuration = tiempoNoticia.duracion;
+
+    if (tiempoNoticia.fechaInicio && tiempoNoticia.fechaFin) {
+      const fechaInicio = new Date(tiempoNoticia.fechaInicio);
+      const fechaFin = new Date(tiempoNoticia.fechaFin);
+
+      // Calcular duración en segundos
+      calculatedDuration = Math.floor((fechaFin.getTime() - fechaInicio.getTime()) / 1000);
+
+      // Validar que la duración sea positiva
+      if (calculatedDuration <= 0) {
+        calculatedDuration = tiempoNoticia.duracion || 60; // Fallback
+      }
+
+      console.log('Duración calculada desde fechas:', calculatedDuration, 'segundos');
+      console.log('Duración original recibida:', tiempoNoticia.duracion, 'segundos');
+    }
+
+    const pool = await getConnection();
+
+    await pool
+      .request()
+      .input("id", sql.Int, req.params.id)
+      .input("fechaInicio", tiempoNoticia.fechaInicio)
+      .input("fechaFin", tiempoNoticia.fechaFin)
+      .input("duracion", sql.Int, calculatedDuration) // Usar duración calculada
+      .query(querys.updateFechaNoticia);
+
+    console.log(`Noticia ${req.params.id} actualizada con duración: ${calculatedDuration}s`);
+
+    res.json({
+      success: true,
+      duracionCalculada: calculatedDuration,
+      duracionOriginal: tiempoNoticia.duracion
+    });
+  } catch (error) {
+    console.error('Error en updateFechaNoticia:', error);
+    res.status(500);
+    res.send(error);
+  }
+};
 
 export const getmediosvt = async (req, res) => {
   try {
@@ -1426,29 +1710,6 @@ export const InsertCoberturas = async (req, res) => {
 
 };
 
-export const updateFechaNoticia = async (req, res) => {
-  const tiempoNoticia = req.body;
-  console.log("entreinsert")
-  req.header("Access-Control-Allow-Origin", "*");
-  try {
-    const pool = await getConnection();
-
-
-    await pool
-      .request()
-      .input("id", sql.Int, req.params.id)
-      .input("fechaInicio", tiempoNoticia.fechaInicio)
-      .input("fechaFin", tiempoNoticia.fechaFin)
-      .input("duracion", sql.Int, tiempoNoticia.duracion)
-      .query(querys.updateFechaNoticia);
-
-    res.json("ok");
-  } catch (error) {
-    res.status(500);
-    res.send(error);
-  }
-
-};
 export const InsertTema = async (req, res) => {
   const MensionInsert = req.body;
   console.log("entreinsert")
